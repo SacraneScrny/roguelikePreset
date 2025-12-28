@@ -11,6 +11,11 @@ namespace Sackrany.Pool.Extensions
             var pool = PoolManager.GetOrCreatePool(gameObject);
             return pool.Get().gameObject;
         }
+        public static GameObject POOL(this GameObject gameObject, Transform parent)
+        {
+            var pool = PoolManager.GetOrCreatePool(gameObject);
+            return pool.Get(parent).gameObject;
+        }
         public static void RELEASE(this GameObject gameObject)
         {
             var pool = PoolManager.GetOrCreatePool(gameObject);

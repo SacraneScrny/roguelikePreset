@@ -1,9 +1,12 @@
-﻿using Sackrany.ExpandedVariable.Abstracts;
+﻿using System;
+
+using Sackrany.ExpandedVariable.Abstracts;
 
 using UnityEngine;
 
 namespace Sackrany.ExpandedVariable.Entities
 {
+    [Serializable]
     public class ExpandedVector3 : BaseComplexityExpandedVariable<Vector3>
     {
         public ExpandedVector3(Vector3 variable) : base(variable) { }

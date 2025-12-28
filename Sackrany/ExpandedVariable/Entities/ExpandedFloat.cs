@@ -1,7 +1,10 @@
-﻿using Sackrany.ExpandedVariable.Abstracts;
+﻿using System;
+
+using Sackrany.ExpandedVariable.Abstracts;
 
 namespace Sackrany.ExpandedVariable.Entities
 {
+    [Serializable]
     public class ExpandedFloat : BaseComplexityExpandedVariable<float>
     {
         public ExpandedFloat(float variable) : base(variable) { }

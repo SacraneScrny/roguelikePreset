@@ -21,9 +21,9 @@ namespace Sackrany.CMS
         {
             _hashedObjects = null;
         }
-        private void UpdateDictionary()
+        public void UpdateDictionary(bool forceUpdate = false)
         {
-            if (_hashedObjects != null) return;
+            if (!forceUpdate && _hashedObjects != null) return;
             _hashedObjects = new Dictionary<uint, GameObject>();
             foreach (var a in Entries.SelectMany(x => x.Objects))
                 _hashedObjects.Add(a.HashKey, a.Object);

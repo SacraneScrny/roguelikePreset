@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace Sackrany.ExpandedVariable.Abstracts
 {
+    [Serializable]
     public abstract class BaseComplexityExpandedVariable<T> : BaseExpandedVariable<T>
     {
         private protected List<expandedDelegate> BaseAdditional = new();

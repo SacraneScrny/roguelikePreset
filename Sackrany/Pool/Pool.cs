@@ -37,6 +37,14 @@ namespace Sackrany.Pool
             obj.OnPooled();
             return obj;
         }
+        public IPoolable Get(Transform parent)
+        {
+            IPoolable obj = _pool.Count > 0 ? _pool.Pop() : Create();
+            
+            obj.gameObject.transform.SetParent(parent);
+            obj.OnPooled();
+            return obj;
+        }
 
         public void Release(IPoolable obj)
         {
@@ -47,6 +55,7 @@ namespace Sackrany.Pool
         private IPoolable Create()
         {
             var go = GameObject.Instantiate(_prefab);
+            go.name = _prefab.name;
             var poolable = go.GetComponent<IPoolable>();
 
             go.SetActive(false);

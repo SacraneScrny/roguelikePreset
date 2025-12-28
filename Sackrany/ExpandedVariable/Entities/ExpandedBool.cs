@@ -1,7 +1,10 @@
-﻿using Sackrany.ExpandedVariable.Abstracts;
+﻿using System;
+
+using Sackrany.ExpandedVariable.Abstracts;
 
 namespace Sackrany.ExpandedVariable.Entities
 {
+    [Serializable]
     public class ExpandedBool : BaseComplexityExpandedVariable<bool>
     {
         public ExpandedBool(bool variable) : base(variable) { }

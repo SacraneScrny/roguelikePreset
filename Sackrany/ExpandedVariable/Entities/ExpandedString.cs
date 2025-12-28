@@ -1,9 +1,11 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 
 using Sackrany.ExpandedVariable.Abstracts;
 
 namespace Sackrany.ExpandedVariable.Entities
 {
+    [Serializable]
     public class ExpandedString : BaseSimpleExpandedVariable<string>
     {
         public ExpandedString(string variable) : base(variable) { }

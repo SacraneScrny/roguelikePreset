@@ -1,28 +1,48 @@
-﻿namespace Sackrany.ExpandedVariable.Abstracts
+﻿using System;
+
+using UnityEngine;
+
+namespace Sackrany.ExpandedVariable.Abstracts
 {
+    [Serializable]
     public abstract class BaseExpandedVariable<T>
     {
         public delegate T expandedDelegate();
-        private protected readonly T defaultVariable;
-        private protected T Variable;
+        private bool _hasInited = false;
+        private T _defaultValue;
+        [SerializeField] private protected T Variable;
         
         protected BaseExpandedVariable(T value)
         {
-            defaultVariable = value;
-            Variable = defaultVariable;
+            Variable = value;
         }
+
+        #if UNITY_EDITOR
+        public T GetValueEditor()
+        {
+            T result = Value();
+            return result;
+        }
+        #endif
         
         public T GetValue()
         {
+            if (!_hasInited)
+            {
+                _defaultValue = Variable;
+                _hasInited = true;
+            }
             T result = Value();
-            OnValueChanged(result);
+            OnValueChanged?.Invoke(result);
             return result;
         }
-        public void SetValue(T value)
+        public void SetOriginalValue(T value)
         {
             Variable = value;
-            OnValueChanged(value);
+            T result = Value();
+            OnValueChanged?.Invoke(result);
         }
+        public T GetOriginalValue() => Variable; 
         
         private protected abstract T CalculateValue();
         private protected T Value()
@@ -36,7 +56,8 @@
         public void Clear()
         {
             OnValueChanged = null;
-            Variable = defaultVariable;
+            if (_hasInited)
+                Variable = _defaultValue;
             OnClear();
         }
         private protected abstract void OnClear();

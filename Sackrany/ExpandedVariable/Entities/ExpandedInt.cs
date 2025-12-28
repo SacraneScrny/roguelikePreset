@@ -1,7 +1,10 @@
-﻿using Sackrany.ExpandedVariable.Abstracts;
+﻿using System;
+
+using Sackrany.ExpandedVariable.Abstracts;
 
 namespace Sackrany.ExpandedVariable.Entities
 {
+    [Serializable]
     public class ExpandedInt : BaseComplexityExpandedVariable<int>
     {
         public ExpandedInt(int variable) : base(variable) { }

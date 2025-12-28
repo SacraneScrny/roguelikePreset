@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Sackrany.Extensions
 {
@@ -17,6 +18,20 @@ namespace Sackrany.Extensions
             }
     
             list.RemoveAt(lastIndex); 
+            return true;
+        }
+        public static bool FastRemove<T>(this T[] array, T item)
+            where T : class
+        {
+            int index = Array.IndexOf(array, item);
+            if (index < 0) return false;
+    
+            int lastIndex = array.Length - 1;
+            if (index != lastIndex)
+            {
+                array[index] = array[lastIndex];
+            }
+            Array.Resize(ref array, array.Length - 1);
             return true;
         }
     }

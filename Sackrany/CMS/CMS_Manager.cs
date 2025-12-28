@@ -10,5 +10,9 @@ namespace Sackrany.CMS
     {
         public CMS Cms;
         public static CMS CMS => Instance.Cms;
+        private protected override void OnManagerAwake()
+        {
+            CMS.UpdateDictionary(true);
+        }
     }
 }
