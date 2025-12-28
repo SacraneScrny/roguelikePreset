@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 using Sackrany.ExpandedVariable.Entities;
 using Sackrany.Extensions;
+using Sackrany.Hash;
 using Sackrany.Unit.Data;
 using Sackrany.Unit.ModuleSystem.Main;
 
@@ -10,46 +11,64 @@ using UnityEngine;
 
 namespace Sackrany.Unit.Abstracts
 {
-    public abstract class UnitBase : MonoBehaviour
-    {        
+    public abstract class UnitBase : MonoBehaviour, IEquatable<UnitBase>
+    {
+        public bool AutoAwake;
         public ExpandedFloat UnitTimeFlow = new (1f);
         public UnitEvent Event = new ();
         public UnitTag Tag = new ();
+        public UnitConditions Conditions = new ();
         
         private protected readonly List<IUpdatable> _updateActions = new ();
         
         private long _hash;
         private bool _isInitialized;
         private bool _switchState = true;
+        private bool _isQuitting;
+        
+        private void Awake()
+        {
+            UnitTimeFlow.GetValue();
+            Application.quitting += () => _isQuitting = true;
+            if (AutoAwake)
+                Initialize();
+        }
         
         private protected void SetUpTimeFlow()
         {
-            UnitTimeFlow = new ExpandedFloat(1f);
+            UnitTimeFlow.Clear();
             UnitTimeFlow.Add_Multiply(UnitManager.Instance.UnitsTimeFlow);
         }
         private protected void SetUpUnitData()
         {
             Event = new UnitEvent();
             Event.Initialize(this);
+            Tag.Initialize(this);
+            Conditions.Initialize(this);
         }
         
         private void Update()
         {
             if (!_isInitialized) return;
+            float dt = Time.deltaTime * UnitTimeFlow;
+            Conditions.Update();
             for (var i = 0; i < _updateActions.Count; i++)
-                _updateActions[i].Update(Time.deltaTime / UnitTimeFlow);
+                _updateActions[i].Update(dt);
         }
         private void FixedUpdate()
         {
             if (!_isInitialized) return;
+            float dt = Time.fixedDeltaTime * UnitTimeFlow;
+            Conditions.FixedUpdate();
             for (var i = 0; i < _updateActions.Count; i++)
-                _updateActions[i].FixedUpdate(Time.deltaTime / UnitTimeFlow);
+                _updateActions[i].FixedUpdate(dt);
         }
         private void LateUpdate()
         {
             if (!_isInitialized) return;
+            float dt = Time.deltaTime * UnitTimeFlow;
             for (var i = 0; i < _updateActions.Count; i++)
-                _updateActions[i].LateUpdate(Time.deltaTime / UnitTimeFlow);
+                _updateActions[i].LateUpdate(dt);
         }
         
         private Action<float> _updateAction;
@@ -64,6 +83,7 @@ namespace Sackrany.Unit.Abstracts
         private void OnDestroy()
         {
             if (!_isInitialized) return;
+            if (_isQuitting) return;
             UnitManager.UnregisterUnit(this);
         }
         
@@ -120,6 +140,7 @@ namespace Sackrany.Unit.Abstracts
             UnitTimeFlow.Clear();
             Event.Reset();
             Tag.Reset();
+            Conditions.Reset();
         }
         private protected void ResetUnitControllers()
         {
@@ -127,7 +148,7 @@ namespace Sackrany.Unit.Abstracts
                 controller.Reset();
         }
         
-        private protected abstract IEnumerable<IBaseModuleController> GetControllers();
+        public abstract IEnumerable<IBaseModuleController> GetControllers();
         
         public UnitBase Initialize()
         {
@@ -170,5 +191,35 @@ namespace Sackrany.Unit.Abstracts
                 _updateActions.FastRemove(updatable);
             value.Dispose();
         }
+        
+
+        public bool Equals(UnitBase other)
+        {
+            if (ReferenceEquals(other, null)) return false;
+            if (ReferenceEquals(this, other)) return true;
+
+            return _hash == other._hash;
+        }
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(obj, null)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+
+            return Equals((UnitBase)obj);
+        }
+        public override int GetHashCode()
+        {
+            return _hash.GetHashCode();
+        }
+
+        public static bool operator ==(UnitBase left, UnitBase right)
+        {
+            if (ReferenceEquals(left, right)) return true;
+            if (ReferenceEquals(left, null)) return false;
+            return left.Equals(right);
+        }
+        public static bool operator !=(UnitBase left, UnitBase right)
+            => !(left == right);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using Sackrany.Extensions;
 using Sackrany.Unit.Abstracts;
 using Sackrany.Unit.ModuleSystem.Main;
 
@@ -10,9 +11,9 @@ namespace Sackrany.Unit.Base
 {
     public class SimpleGameUnit : UnitBase
     {
-        [SerializeField] private ISimpleModuleController[] Controllers;
+        [SerializeField] private IBaseModuleController[] Controllers;
         
-        private protected override IEnumerable<IBaseModuleController> GetControllers() => Controllers;
+        public override IEnumerable<IBaseModuleController> GetControllers() => Controllers;
         
         public override TController Get<TController>()
         {
@@ -31,6 +32,33 @@ namespace Sackrany.Unit.Base
                 }
             value = default(TController);
             return false;
+        }
+        public override bool Add<TController>(TController value)
+        {
+            for (int i = 0; i < Controllers.Length; i++)
+                if (Controllers[i].GetType() == typeof(TController))
+                    return false;
+            
+            Array.Resize(ref Controllers, Controllers.Length + 1);
+            Controllers[^1] = value;
+            IntegrateController(value);
+            
+            return true;
+        }
+        public override bool Remove<TController>(TController value)
+        {
+            bool has = false;
+            for (int i = 0; i < Controllers.Length; i++)
+                if (Controllers[i].GetType() == typeof(TController))
+                {
+                    has = true;
+                    break;
+                }
+            if (!has) return false;
+            
+            DisposeController(value);
+            Controllers.FastRemove(value);
+            return true;
         }
     }
 }

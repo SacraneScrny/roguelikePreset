@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
+using Sackrany.Hash;
+
 namespace Sackrany.Unit.Data
 {
     [System.Serializable]
@@ -10,7 +12,7 @@ namespace Sackrany.Unit.Data
         
         private Dictionary<string, uint> _hash = new ();
 
-        public UnitTag()
+        private protected override void OnInitialize()
         {
             _hash = Tags.ToDictionary(x => x, x => x.XXHash());
         }

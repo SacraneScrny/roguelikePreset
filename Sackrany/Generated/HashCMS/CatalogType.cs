@@ -7,7 +7,5 @@ namespace Sackrany.CMS
     public enum CatalogType
     {
         Default,
-        Particles,
-        Unit,
     }
 }

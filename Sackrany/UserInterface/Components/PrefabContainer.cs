@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
+using Sackrany.Hash;
 using Sackrany.UserInterface.Entities;
 
 using UnityEngine;
@@ -23,6 +25,12 @@ namespace Sackrany.UserInterface.Components
             if (_prefabElements.TryGetValue(key.XXHash(), out int index))
                 return Instantiate(PrefabElements[index].Prefab, parent) as GameObject;
             return null;
+        }
+        
+        private void OnValidate()
+        {
+            foreach (var element in PrefabElements)
+                if (string.IsNullOrEmpty(element.Key)) element.Key = element.Prefab.name;
         }
     }
 }

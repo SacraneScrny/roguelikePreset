@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
+
+using UnityEngine;
 
 using Object = UnityEngine.Object;
 
@@ -26,7 +28,14 @@ namespace Sackrany.Utils
                 return _instance;
             }
         }
-
+        
+        #if UNITY_EDITOR
+        private void OnValidate()
+        {
+            gameObject.name = typeof(T).Name;
+        }
+        #endif
+        
         private void Awake()
         {
             if (_instance != null && _instance != this)

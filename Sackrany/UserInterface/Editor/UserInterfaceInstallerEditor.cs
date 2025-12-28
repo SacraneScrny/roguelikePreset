@@ -30,7 +30,6 @@ namespace Sackrany.UserInterface.Editor
         {
             var presenterType = typeof(Presenter);
 
-            // Получаем все типы, наследующие от Presenter
             var types = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a =>
                 {
@@ -38,7 +37,6 @@ namespace Sackrany.UserInterface.Editor
                     catch (ReflectionTypeLoadException e) { return e.Types.Where(t => t != null); }
                 })
                 .Where(t => t.IsClass && !t.IsAbstract && presenterType.IsAssignableFrom(t))
-                .Where(t => t.Namespace != null && t.Namespace.StartsWith("Logic.UserInterface"))
                 .OrderBy(t => t.Name)
                 .ToList();
 
@@ -50,7 +48,7 @@ namespace Sackrany.UserInterface.Editor
 
             var sb = new StringBuilder();
             sb.AppendLine("// Автоматически сгенерировано скриптом UserInterfaceInstallerEditor");
-            sb.AppendLine("namespace Logic.UserInterface.Factory");
+            sb.AppendLine("namespace Sackrany.UserInterface");
             sb.AppendLine("{");
             sb.AppendLine("    public enum PresenterType");
             sb.AppendLine("    {");
@@ -61,7 +59,7 @@ namespace Sackrany.UserInterface.Editor
             sb.AppendLine("    }");
             sb.AppendLine("}");
 
-            var path = "Assets/Logic/UserInterface/Factory/PresenterType.cs";
+            var path = "Assets/Sackrany/Generated/UI/PresenterType.cs";
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
 

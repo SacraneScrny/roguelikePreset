@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Sackrany.ExpandedVariable.Entities;
 using Sackrany.Pool.Abstracts;
 using Sackrany.Unit.Abstracts;
-using Sackrany.Unit.Modules.ComponentsFeature;
+using Sackrany.Unit.Features.ComponentsFeature;
 using Sackrany.Unit.ModuleSystem.Main;
 
 using UnityEngine;
@@ -13,7 +13,7 @@ namespace Sackrany.Unit.Base
 {
     public class GameUnit : UnitBase, IPoolable
     {
-        [SerializeField] private protected List<IBaseModuleController> Controllers = new ();
+        [SerializeField][SerializeReference][SubclassSelector] private protected List<IBaseModuleController> Controllers = new ();
         private readonly Dictionary<Type, IBaseModuleController> _cachedControllers = new ();
         
         private protected override void OnInitialize()
@@ -22,15 +22,14 @@ namespace Sackrany.Unit.Base
         }
         private void CacheControllers()
         {
+            _cachedControllers.Clear();
             foreach (var controller in Controllers)
             {
                 _cachedControllers.Add(controller.GetType(), controller);
             }
-
-            this.TryExecute<UnitComponentsController, UnitComponent>((x) => { });
         }
         
-        private protected override IEnumerable<IBaseModuleController> GetControllers() => _cachedControllers.Values;
+        public override IEnumerable<IBaseModuleController> GetControllers() => _cachedControllers.Values;
         
         public override TController Get<TController>()
         {
