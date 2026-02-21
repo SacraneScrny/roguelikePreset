@@ -1,0 +1,175 @@
+import bpy
+import math
+import os
+
+# ================= НАСТРОЙКИ =================
+TILE_SIZE = 32          # Размер одного квадрата (32x32)
+FPS = 12                # Частота кадров
+ANGLE = 30
+
+# БЕЗОПАСНЫЙ РЕЖИМ: 
+# False = рендерит только 1 текущий кадр (для теста). 
+# True = рендерит всю анимацию на таймлайне.
+RENDER_ANIMATION = False 
+# =============================================
+
+def setup_isometric_camera(target_obj):
+    # Очищаем старые камеры скрипта, если есть
+    for obj in bpy.data.objects:
+        if obj.name in ["IsoPivot", "IsoCamera"]:
+            bpy.data.objects.remove(obj, do_unlink=True)
+
+    # Создаем пустышку-центр
+    bpy.ops.object.empty_add(type='PLAIN_AXES', location=target_obj.location)
+    pivot = bpy.context.active_object
+    pivot.name = "IsoPivot"
+    
+    # Создаем камеру
+    bpy.ops.object.camera_add()
+    cam = bpy.context.active_object
+    cam.name = "IsoCamera"
+    cam.data.type = 'ORTHO'
+    
+    # Идеальная true-изометрия: 
+    # Камера отъезжает назад (-10) и поднимается вверх (7.071)
+    cam.location = (0, -10, math.tan(math.radians(ANGLE)) * 10)
+    # И наклоняется ровно на 54.736 градусов по оси X, чтобы смотреть точно в центр
+    cam.rotation_euler = (math.radians(90-ANGLE), 0, 0)
+    
+    # Привязываем к пустышке
+    cam.parent = pivot
+    bpy.context.scene.camera = cam
+    
+    return pivot, cam
+
+def get_max_ortho_scale(target_obj, cam):
+    scene = bpy.context.scene
+    max_scale = 0.1
+    
+    frames = range(scene.frame_start, scene.frame_end + 1) if RENDER_ANIMATION else [scene.frame_current]
+    
+    for f in frames:
+        scene.frame_set(f)
+        bpy.context.evaluated_depsgraph_get()
+        dims = target_obj.dimensions
+        # Увеличил запас размера (2.5), чтобы ничего точно не обрезалось
+        size = max(dims.x, dims.y, dims.z) * 2.5 
+        if size > max_scale:
+            max_scale = size
+            
+    return max_scale
+
+def render_sprite_sheet():
+    scene = bpy.context.scene
+    target = bpy.context.active_object
+    
+    if not target or target.type != 'MESH':
+        print("ОШИБКА: Выделите mesh-объект (например, куб или персонажа).")
+        return
+
+    # Настройки рендера для пиксель-арта
+    scene.render.resolution_x = TILE_SIZE
+    scene.render.resolution_y = TILE_SIZE
+    scene.render.resolution_percentage = 100
+    scene.render.fps = FPS
+    scene.render.film_transparent = True
+    scene.render.image_settings.color_mode = 'RGBA'
+    scene.render.image_settings.file_format = 'PNG'
+    
+    # Отключаем сглаживание для Nearest
+    scene.render.filter_size = 0.01 
+    if scene.render.engine == 'CYCLES':
+        scene.render.filter_size = 0.01
+        
+    pivot, cam = setup_isometric_camera(target)
+    cam.data.ortho_scale = get_max_ortho_scale(target, cam)
+    
+    # Путь сохранения
+    blend_path = bpy.data.filepath
+    base_dir = os.path.dirname(blend_path) if blend_path else os.path.expanduser("~")
+    out_dir = os.path.join(base_dir, f"{target.name}_Sprites")
+    os.makedirs(out_dir, exist_ok=True)
+    
+    directions = {
+        'N': 0, 'NW': 45, 'W': 90, 'SW': 135,
+        'S': 180, 'SE': 225, 'E': 270, 'NE': 315
+    }
+    
+    grid_layout = {
+        'NW': (0, 2), 'N': (1, 2), 'NE': (2, 2),
+        'W':  (0, 1), 'C': (1, 1), 'E':  (2, 1),
+        'SW': (0, 0), 'S': (1, 0), 'SE': (2, 0)
+    }
+
+    sheet_size = TILE_SIZE * 3
+    frames_to_render = range(scene.frame_start, scene.frame_end + 1) if RENDER_ANIMATION else [scene.frame_current]
+
+    # Рендерим центральный кадр (N) один раз для середины
+    scene.frame_set(frames_to_render[0])
+    pivot.rotation_euler[2] = math.radians(directions['N'])
+    temp_center_path = os.path.join(out_dir, "temp_center.png")
+    scene.render.filepath = temp_center_path
+    bpy.ops.render.render(write_still=True)
+
+    print(f"Начинаем рендер. Всего кадров: {len(frames_to_render)}")
+
+    for f in frames_to_render:
+        scene.frame_set(f)
+        sheet_name = f"Frame_{f:04d}"
+        
+        # Создаем пустой холст 96x96
+        img_sheet = bpy.data.images.new(name=sheet_name, width=sheet_size, height=sheet_size, alpha=True)
+        pixels = [0.0] * (sheet_size * sheet_size * 4)
+        
+        for dir_name, angle in directions.items():
+            pivot.rotation_euler[2] = math.radians(angle)
+            
+            temp_path = os.path.join(out_dir, "temp_tile.png")
+            scene.render.filepath = temp_path
+            bpy.ops.render.render(write_still=True)
+            
+            tile_img = bpy.data.images.load(temp_path)
+            grid_x, grid_y = grid_layout[dir_name]
+            
+            tile_pixels = list(tile_img.pixels)
+            for y in range(TILE_SIZE):
+                for x in range(TILE_SIZE):
+                    src_idx = (y * TILE_SIZE + x) * 4
+                    dest_idx = ((grid_y * TILE_SIZE + y) * sheet_size + (grid_x * TILE_SIZE + x)) * 4
+                    pixels[dest_idx:dest_idx+4] = tile_pixels[src_idx:src_idx+4]
+                    
+            bpy.data.images.remove(tile_img)
+
+        # Добавляем центральный кадр
+        center_img = bpy.data.images.load(temp_center_path)
+        center_pixels = list(center_img.pixels)
+        cx, cy = grid_layout['C']
+        for y in range(TILE_SIZE):
+            for x in range(TILE_SIZE):
+                src_idx = (y * TILE_SIZE + x) * 4
+                dest_idx = ((cy * TILE_SIZE + y) * sheet_size + (cx * TILE_SIZE + x)) * 4
+                pixels[dest_idx:dest_idx+4] = center_pixels[src_idx:src_idx+4]
+        bpy.data.images.remove(center_img)
+
+        # Сохраняем финальный лист
+        img_sheet.pixels = pixels
+        img_sheet.filepath_raw = os.path.join(out_dir, f"{sheet_name}.png")
+        img_sheet.file_format = 'PNG'
+        img_sheet.save()
+        bpy.data.images.remove(img_sheet)
+        
+        print(f"Кадр {f} сохранен!")
+
+    # Зачистка
+    if os.path.exists(temp_center_path): os.remove(temp_center_path)
+    temp_tile = os.path.join(out_dir, "temp_tile.png")
+    if os.path.exists(temp_tile): os.remove(temp_tile)
+
+    bpy.ops.object.select_all(action='DESELECT')
+    cam.select_set(True)
+    pivot.select_set(True)
+    bpy.ops.object.delete()
+
+    print(f"ГОТОВО! Ищи спрайты тут: {out_dir}")
+
+render_sprite_sheet()
